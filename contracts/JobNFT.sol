@@ -47,6 +47,11 @@ Ownable
         delete employeeToApproval[_msgSender()];
     }
 
+    function canMintJob(string uri, address minter) external view returns (bool){
+        MintApproval memory approval = getApproval(minter);
+        return approval.uri == uri;
+    }
+
     function getApproval(address employee) public view returns (MintApproval memory) {
         return employeeToApproval[employee];
     }
