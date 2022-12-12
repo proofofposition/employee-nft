@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "./IEmployerSft.sol";
 
 // Desired Features
 // - Approve minting of new job NFTs done by the employer
@@ -17,17 +18,22 @@ ERC721,
 ERC721URIStorage,
 Ownable
 {
+    IEmployerSft employerSft;
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
     mapping(address => MintApproval) employeeToApproval;
+    mapping(address => uint256) employeeToJob;
+    mapping(uint256 => uint32) jobToEmployerId;
 
     struct MintApproval {
         string uri;
-        address employer;
+        uint32 employerTokenId;
     }
 
-    constructor() ERC721("Proof Of Position", "POPP") {}
+    constructor(address _employerSftAddress) ERC721("Proof Of Position", "POPP") {
+        employerSft = IEmployerSFT(_employerSftAddress);
+    }
 
     /**
      * @dev Create approval for an employee to mint a POPP
@@ -36,9 +42,11 @@ Ownable
         address employee,
         string memory uri
     ) public {
+        uint32 employerTokenId = employerSft.tokenFromWallet(_msgSender());
+        require(employerTokenId != 0, "You need to be an employer to mint a POPP");
         MintApproval memory approval = MintApproval(
             uri,
-            _msgSender()
+            employerTokenId
         );
         employeeToApproval[employee] = approval;
     }
@@ -54,6 +62,8 @@ Ownable
         uint256 tokenId = _tokenIdCounter.current();
         _safeMint(employee, tokenId);
         _setTokenURI(tokenId, approval.uri);
+        jobToEmployerId[tokenId] = approval.employerTokenId;
+        employeeToJob[employee] = tokenId;
         delete employeeToApproval[_msgSender()];
     }
 
@@ -62,7 +72,7 @@ Ownable
      */
     function canMintJob(string memory uri, address minter) external view returns (bool){
         MintApproval memory approval = getApproval(minter);
-        
+
         return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(uri));
     }
 
@@ -74,13 +84,27 @@ Ownable
     }
 
     /**
+     * @dev Get the approval for a given employee
+     */
+    function getEmployerIdFromJobId(uint256 _jobId) public view returns (uint32) {
+        return jobToEmployerId[_jobId];
+    }
+
+    /**
+     * @dev Get the approval for a given employee
+     */
+    function getJobIdFromEmployee(address _employee) public view returns (uint256) {
+        return employeeToJob[_employee];
+    }
+
+    /**
      * @dev Burn a token
      */
     function burn(uint256 tokenId) external {
         require(
             _msgSender() == ownerOf(tokenId)
             || owner() == _msgSender(),
-                "Only the owner can do this"
+            "Only the owner can do this"
         );
         _burn(tokenId);
     }
