@@ -18,7 +18,7 @@
   "homepage": "https://github.com/RingierIMU/popp-protocol#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.2",
-    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "chai": "^4.3.6",
     "hardhat": "^2.10.1"
   },
