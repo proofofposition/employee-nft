@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "popp-interfaces/IEmployerSft.sol";
+import "popp-interfaces/IJobNFT.sol";
 
 // Desired Features
 // - Approve minting of new job NFTs done by the employer
@@ -16,7 +17,8 @@ import "popp-interfaces/IEmployerSft.sol";
 contract JobNFT is
 ERC721,
 ERC721URIStorage,
-Ownable
+Ownable,
+IJobNFT
 {
     IEmployerSft employerSft;
     using Counters for Counters.Counter;
@@ -119,12 +121,12 @@ Ownable
         _burn(tokenId);
     }
 
-    // The following functions are overrides required by Solidity.
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 tokenId
-    ) internal pure override(ERC721) {
+        uint256, /* firstTokenId */
+        uint256 batchSize
+    ) internal virtual override(ERC721) {
         require(from == address(0) || to == address(0), "POPP is non-transferable");
     }
 
@@ -147,7 +149,7 @@ Ownable
     function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC721)
+    override(ERC721, IERC165)
     returns (bool)
     {
         return super.supportsInterface(interfaceId);
