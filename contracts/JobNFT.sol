@@ -32,7 +32,7 @@ Ownable
     }
 
     constructor(address _employerSftAddress) ERC721("Proof Of Position", "POPP") {
-        employerSft = IEmployerSFT(_employerSftAddress);
+        employerSft = IEmployerSft(_employerSftAddress);
     }
 
     /**
@@ -42,8 +42,8 @@ Ownable
         address employee,
         string memory uri
     ) public {
-        uint32 employerTokenId = employerSft.tokenFromWallet(_msgSender());
-        require(employerTokenId != 0, "You need to be an employer to mint a POPP");
+        uint32 employerTokenId = employerSft.employerIdFromWallet(_msgSender());
+        require(employerTokenId != 0, "You need to be an employer to approve");
         MintApproval memory approval = MintApproval(
             uri,
             employerTokenId
@@ -53,11 +53,10 @@ Ownable
 
     /**
      * @dev Mint a new POPP
-     * @return uint256 representing the newly minted token id
      */
     function mintItem(address employee) public {
         MintApproval memory approval = getApproval(employee);
-        require(approval.employer != address(0), "you don't have approval to mint this NFT");
+        require(approval.employerTokenId != 0, "you don't have approval to mint this NFT");
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
         _safeMint(employee, tokenId);

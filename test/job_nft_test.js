@@ -24,13 +24,17 @@ describe("🚩 Job NFT User Flows", function () {
         // time. It receives a callback, which can be async.
         beforeEach(async function () {
             const Popp = await ethers.getContractFactory("JobNFT");
-            myContract = await Popp.deploy();
+            const EmployerSftMockFactory = await ethers.getContractFactory("EmployerSftMock");
+            this.employerSft = await EmployerSftMockFactory.deploy();
+
+            myContract = await Popp.deploy(this.employerSft.address);
 
             [owner, alice, bob] = await ethers.getSigners();
         });
 
-        describe("approve()", function () {
+        describe("mintItem() ", function () {
             it("Should be able to approve an employee to mint", async function () {
+                await this.employerSft.setEmployerId(1);
                 await myContract.approveMint(
                     alice.address,
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
@@ -38,7 +42,9 @@ describe("🚩 Job NFT User Flows", function () {
 
                 await myContract.connect(alice).mintItem(alice.address);
                 const aliceBalance = await myContract.balanceOf(alice.address);
+                const jobId = await myContract.getJobIdFromEmployee(alice.address);
                 expect(aliceBalance.toBigInt()).to.equal(1);
+                expect(jobId.toBigInt()).to.equal(1);
 
                 await expect(
                     myContract.connect(alice).transferFrom(alice.address, bob.address, 1)
@@ -57,6 +63,7 @@ describe("🚩 Job NFT User Flows", function () {
 
         describe("burn()", function () {
             it("Should be able to burn your popp", async function () {
+                await this.employerSft.setEmployerId(1);
                 await myContract.approveMint(
                     alice.address,
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
