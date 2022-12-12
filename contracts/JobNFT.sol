@@ -31,12 +31,16 @@ Ownable
         uint32 employerTokenId;
     }
 
+    /**
+     * @dev We use the employer SFT to map a wallet to an employer sft
+     */
     constructor(address _employerSftAddress) ERC721("Proof Of Position", "POPP") {
         employerSft = IEmployerSft(_employerSftAddress);
     }
 
     /**
-     * @dev Create approval for an employee to mint a POPP
+     * @dev Create approval for an employee to mint.
+     * It is important to save the employerTokenId here for verification of the badge
      */
     function approveMint(
         address employee,
@@ -52,27 +56,34 @@ Ownable
     }
 
     /**
-     * @dev Mint a new POPP
+     * @dev An employee mint a pre-approved job NFT
      */
-    function mintItem(address employee) public {
+    function mintItem() public {
+        address employee = _msgSender();
         MintApproval memory approval = getApproval(employee);
+
         require(approval.employerTokenId != 0, "you don't have approval to mint this NFT");
+
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
+
         _safeMint(employee, tokenId);
         _setTokenURI(tokenId, approval.uri);
+
         jobToEmployerId[tokenId] = approval.employerTokenId;
         employeeToJob[employee] = tokenId;
-        delete employeeToApproval[_msgSender()];
+
+        delete employeeToApproval[employee];
     }
 
     /**
-     * @dev Get the approval for a given employee
+     * @dev Can a given employee mint a job with
      */
-    function canMintJob(string memory uri, address minter) external view returns (bool){
-        MintApproval memory approval = getApproval(minter);
+    function canMintJob(string memory _uri, address _minter, uint32 _employerTokenId ) external view returns (bool){
+        MintApproval memory approval = getApproval(_minter);
 
-        return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(uri));
+        return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(_uri))
+            && approval.employerTokenId == _employerTokenId;
     }
 
     /**
