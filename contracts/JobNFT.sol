@@ -58,13 +58,12 @@ IJobNFT
     }
 
     /**
-     * @dev An employee mint a pre-approved job NFT
+     * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
      */
-    function mintItem() public {
-        address employee = _msgSender();
+    function mintFor(address employee) public {
         MintApproval memory approval = getApproval(employee);
 
-        require(approval.employerTokenId != 0, "you don't have approval to mint this NFT");
+        require(approval.employerTokenId != 0, "you don't have approval to mint");
 
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();

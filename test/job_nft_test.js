@@ -32,7 +32,7 @@ describe("🚩 Job NFT User Flows", function () {
             [owner, alice, bob] = await ethers.getSigners();
         });
 
-        describe("mintItem() ", function () {
+        describe("mintFor() ", function () {
             it("Should be able to approve an employee to mint", async function () {
                 await this.employerSft.setEmployerId(1);
                 await myContract.approveMint(
@@ -40,7 +40,7 @@ describe("🚩 Job NFT User Flows", function () {
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
                 );
 
-                await myContract.connect(alice).mintItem();
+                await myContract.connect(alice).mintFor(alice.address);
                 const aliceBalance = await myContract.balanceOf(alice.address);
                 const jobId = await myContract.getJobIdFromEmployee(alice.address);
                 expect(aliceBalance.toBigInt()).to.equal(1);
@@ -54,8 +54,8 @@ describe("🚩 Job NFT User Flows", function () {
             it("Should not be able to mint without approval", async function () {
                 // test no approval
                 await expect(
-                    myContract.connect(bob).mintItem()
-                ).to.be.revertedWith("you don't have approval to mint this NFT");
+                    myContract.connect(bob).mintFor(bob.address)
+                ).to.be.revertedWith("you don't have approval to mint");
                 const bobBalance = await myContract.balanceOf(bob.address);
                 expect(bobBalance.toBigInt()).to.equal(0);
             });
@@ -69,7 +69,7 @@ describe("🚩 Job NFT User Flows", function () {
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
                 );
 
-                await myContract.connect(alice).mintItem();
+                await myContract.connect(alice).mintFor(alice.address);
 
                 await expect(
                     myContract.connect(bob).burn(1)
