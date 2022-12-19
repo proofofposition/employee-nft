@@ -84,21 +84,25 @@ IJobNFT
      * It's worth noting that an employee can only hold one badge per employer.
      * A pre-existing badge gets overwritten by the next
      */
-    function mintFor(address employee, uint32 employerId) public {
-        MintApproval memory approval = getApproval(employee, employerId);
+    function mintFor(address _employee, uint32 _employerId) public {
+        MintApproval memory approval = getApproval(_employee, _employerId);
 
-        require(approval.employerId == employerId, "you don't have approval to mint");
+        require(approval.employerId == _employerId, "you don't have approval to mint");
+        if (employeeToJobIds[_employee][_employerId] != 0) {
+            // If the employee already has a job NFT for this employer, burn it
+            _burn(employeeToJobIds[_employee][_employerId]);
+        }
 
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
 
-        _safeMint(employee, tokenId);
+        _safeMint(_employee, tokenId);
         _setTokenURI(tokenId, approval.uri);
 
         jobToEmployerId[tokenId] = approval.employerId;
-        employeeToJobIds[employee][approval.employerId] = tokenId;
+        employeeToJobIds[_employee][approval.employerId] = tokenId;
 
-        delete employeeToApprovals[employee][approval.employerId];
+        delete employeeToApprovals[_employee][approval.employerId];
     }
 
     /**
@@ -142,10 +146,12 @@ IJobNFT
      * @dev Burn a token
      */
     function burn(uint256 tokenId) external {
+        uint32 employerId = getEmployerIdFromJobId(tokenId);
         require(
             _msgSender() == ownerOf(tokenId)
-            || owner() == _msgSender(),
-            "Only the owner can do this"
+            || owner() == _msgSender()
+            || getSendersEmployerId() == employerId,
+            "Only the employee or employer can do this"
         );
         _burn(tokenId);
     }

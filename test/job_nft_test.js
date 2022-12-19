@@ -51,6 +51,57 @@ describe("🚩 Job NFT User Flows", function () {
                 ).to.be.revertedWith("POPP is non-transferable");
             });
 
+            it("Should be able to approve an employee to mint several popp badges", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.approveMint(
+                    alice.address,
+                    "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
+                );
+
+                await myContract.connect(alice).mintFor(alice.address, 1);
+                let aliceBalance = await myContract.balanceOf(alice.address);
+                let jobId = await myContract.getJobIdFromEmployeeAndEmployer(alice.address, 1);
+                expect(aliceBalance.toBigInt()).to.equal(1);
+                expect(jobId.toBigInt()).to.equal(1);
+
+                // mint for another employer
+                await this.employerSft.setEmployerId(2);
+                await myContract.approveMint(
+                    alice.address,
+                    "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
+                );
+                await myContract.connect(alice).mintFor(alice.address, 2);
+                aliceBalance = await myContract.balanceOf(alice.address);
+                jobId = await myContract.getJobIdFromEmployeeAndEmployer(alice.address, 2);
+                expect(aliceBalance.toBigInt()).to.equal(2);
+                expect(jobId.toBigInt()).to.equal(2);
+            });
+
+            it("Should be able to overwrite badges from the same employer", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.approveMint(
+                    alice.address,
+                    "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
+                );
+
+                await myContract.connect(alice).mintFor(alice.address, 1);
+                let aliceBalance = await myContract.balanceOf(alice.address);
+                let jobId = await myContract.getJobIdFromEmployeeAndEmployer(alice.address, 1);
+                expect(aliceBalance.toBigInt()).to.equal(1);
+                expect(jobId.toBigInt()).to.equal(1);
+
+                // mint for same employer
+                await myContract.approveMint(
+                    alice.address,
+                    "another-hash"
+                );
+                await myContract.connect(alice).mintFor(alice.address, 1);
+                aliceBalance = await myContract.balanceOf(alice.address);
+                jobId = await myContract.getJobIdFromEmployeeAndEmployer(alice.address, 1);
+                expect(aliceBalance.toBigInt()).to.equal(1);
+                expect(jobId.toBigInt()).to.equal(2);
+            });
+
             it("Should not be able to mint without approval", async function () {
                 // test no approval
                 await expect(
@@ -71,15 +122,28 @@ describe("🚩 Job NFT User Flows", function () {
 
                 await myContract.connect(alice).mintFor(alice.address, 1);
 
-                await expect(
-                    myContract.connect(bob).burn(1)
-                ).to.be.revertedWith("Only the owner can do this");
-
                 await myContract.connect(alice).burn(1);
                 const aliceBalance = await myContract.balanceOf(alice.address);
                 expect(aliceBalance.toBigInt()).to.equal(0);
             });
-        });
+            it("Should be able to burn your employee's pop", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.approveMint(
+                    alice.address,
+                    "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
+                );
 
+                await myContract.connect(alice).mintFor(alice.address, 1);
+                await this.employerSft.setEmployerId(2);
+                await expect(
+                    myContract.connect(bob).burn(1)
+                ).to.be.revertedWith("Only the employee or employer can do this");
+
+                await this.employerSft.setEmployerId(1);
+                await myContract.connect(bob).burn(1);
+                const aliceBalance = await myContract.balanceOf(alice.address);
+                expect(aliceBalance.toBigInt()).to.equal(0);
+            });
+        });
     });
 });
