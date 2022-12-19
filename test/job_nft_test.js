@@ -42,7 +42,7 @@ describe("🚩 Job NFT User Flows", function () {
 
                 await myContract.connect(alice).mintFor(alice.address, 1);
                 const aliceBalance = await myContract.balanceOf(alice.address);
-                const jobId = await myContract.getJobIdFromEmployee(alice.address);
+                const jobId = await myContract.getJobIdFromEmployeeAndEmployer(alice.address, 1);
                 expect(aliceBalance.toBigInt()).to.equal(1);
                 expect(jobId.toBigInt()).to.equal(1);
 

@@ -25,7 +25,7 @@ IJobNFT
 
     Counters.Counter private _tokenIdCounter;
     mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
-    mapping(address => uint256) employeeToJob;
+    mapping(address =>  mapping(uint32 => uint256)) employeeToJobIds;
     mapping(uint256 => uint32) jobToEmployerId;
 
     struct MintApproval {
@@ -94,7 +94,7 @@ IJobNFT
         _setTokenURI(tokenId, approval.uri);
 
         jobToEmployerId[tokenId] = approval.employerId;
-        employeeToJob[employee] = tokenId;
+        employeeToJobIds[employee][approval.employerId] = tokenId;
 
         delete employeeToApprovals[employee][approval.employerId];
     }
@@ -126,8 +126,8 @@ IJobNFT
     /**
      * @dev Get the approval for a given employee
      */
-    function getJobIdFromEmployee(address _employee) public view returns (uint256) {
-        return employeeToJob[_employee];
+    function getJobIdFromEmployeeAndEmployer(address _employee, uint32 _employerId) external view returns (uint256) {
+        return employeeToJobIds[_employee][_employerId];
     }
 
     function getSendersEmployerId() public view returns (uint32) {
