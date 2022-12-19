@@ -24,13 +24,13 @@ IJobNFT
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
-    mapping(address => MintApproval) employeeToApproval;
+    mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
     mapping(address => uint256) employeeToJob;
     mapping(uint256 => uint32) jobToEmployerId;
 
     struct MintApproval {
         string uri;
-        uint32 employerTokenId;
+        uint32 employerId;
     }
 
     /**
@@ -42,28 +42,50 @@ IJobNFT
 
     /**
      * @dev Create approval for an employee to mint.
-     * It is important to save the employerTokenId here for verification of the badge
+     * It is important to save the employerId here for verification of the badge
      */
     function approveMint(
         address employee,
         string memory uri
     ) public {
-        uint32 employerTokenId = employerSft.employerIdFromWallet(_msgSender());
-        require(employerTokenId != 0, "You need to be an employer to approve");
+        uint32 employerId = getSendersEmployerId();
+        MintApproval memory existingApproval = getApproval(employee,employerId);
+        require(existingApproval.employerId == 0, "Approval already exists for this employer");
+
+        require(employerId != 0, "You need to be an employer to approve");
         MintApproval memory approval = MintApproval(
             uri,
-            employerTokenId
+            employerId
         );
-        employeeToApproval[employee] = approval;
+
+        employeeToApprovals[employee][employerId] = approval;
+    }
+
+    /**
+     * @dev Delete a mint approval for an employee
+     */
+    function deleteMintApproval(
+        address employee,
+        uint32 employerId
+    ) public {
+        require(
+            msg.sender == employee
+            || getSendersEmployerId() == employerId
+            || msg.sender == owner()
+        ,
+            "You don't have permission to delete this approval"
+        );
+
+        delete employeeToApprovals[employee][employerId];
     }
 
     /**
      * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
      */
-    function mintFor(address employee) public {
-        MintApproval memory approval = getApproval(employee);
+    function mintFor(address employee, uint32 employerId) public {
+        MintApproval memory approval = getApproval(employee, employerId);
 
-        require(approval.employerTokenId != 0, "you don't have approval to mint");
+        require(approval.employerId == employerId, "you don't have approval to mint");
 
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
@@ -71,27 +93,27 @@ IJobNFT
         _safeMint(employee, tokenId);
         _setTokenURI(tokenId, approval.uri);
 
-        jobToEmployerId[tokenId] = approval.employerTokenId;
+        jobToEmployerId[tokenId] = approval.employerId;
         employeeToJob[employee] = tokenId;
 
-        delete employeeToApproval[employee];
+        delete employeeToApprovals[employee][approval.employerId];
     }
 
     /**
      * @dev Can a given employee mint a job with
      */
-    function canMintJob(string memory _uri, address _minter, uint32 _employerTokenId ) external view returns (bool){
-        MintApproval memory approval = getApproval(_minter);
+    function canMintJob(string memory _uri, address _minter, uint32 _employerId ) external view returns (bool){
+        MintApproval memory approval = getApproval(_minter, _employerId);
 
         return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(_uri))
-            && approval.employerTokenId == _employerTokenId;
+            && approval.employerId == _employerId;
     }
 
     /**
      * @dev Get the approval for a given employee
      */
-    function getApproval(address employee) public view returns (MintApproval memory) {
-        return employeeToApproval[employee];
+    function getApproval(address employee, uint32 employerId) public view returns (MintApproval memory) {
+        return employeeToApprovals[employee][employerId];
     }
 
     /**
@@ -108,6 +130,9 @@ IJobNFT
         return employeeToJob[_employee];
     }
 
+    function getSendersEmployerId() public view returns (uint32) {
+        return employerSft.employerIdFromWallet(msg.sender);
+    }
     /**
      * @dev Burn a token
      */
