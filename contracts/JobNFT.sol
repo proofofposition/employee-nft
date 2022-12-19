@@ -81,6 +81,8 @@ IJobNFT
 
     /**
      * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
+     * It's worth noting that an employee can only hold one badge per employer.
+     * A pre-existing badge gets overwritten by the next
      */
     function mintFor(address employee, uint32 employerId) public {
         MintApproval memory approval = getApproval(employee, employerId);
@@ -124,12 +126,15 @@ IJobNFT
     }
 
     /**
-     * @dev Get the approval for a given employee
+     * @dev Get the job id of the given employee at a employer
      */
     function getJobIdFromEmployeeAndEmployer(address _employee, uint32 _employerId) external view returns (uint256) {
         return employeeToJobIds[_employee][_employerId];
     }
 
+    /**
+    * @dev Return the employer ID of the msg sender
+     */
     function getSendersEmployerId() public view returns (uint32) {
         return employerSft.employerIdFromWallet(msg.sender);
     }
