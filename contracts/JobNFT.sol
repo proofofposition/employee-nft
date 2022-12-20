@@ -43,13 +43,15 @@ IJobNFT
     /**
      * @dev Create approval for an employee to mint.
      * It is important to save the employerId here for verification of the badge
+     * @param to The employee to grant mint approval
+     * @param uri The uri of the job badge nft
      */
     function approveMint(
-        address employee,
+        address to,
         string memory uri
     ) public {
         uint32 employerId = getSendersEmployerId();
-        MintApproval memory existingApproval = getApproval(employee,employerId);
+        MintApproval memory existingApproval = getApproval(to,employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
@@ -58,20 +60,22 @@ IJobNFT
             employerId
         );
 
-        employeeToApprovals[employee][employerId] = approval;
+        employeeToApprovals[to][employerId] = approval;
     }
 
     /**
      * @dev Delete a mint approval for an employee
+     * @param to The address for which the approval should be deleted
+     * @param employerId The employerId for which the approval should be deleted
      */
     function deleteMintApproval(
-        address employee,
+        address to,
         uint32 employerId
     ) public {
         require(
-            msg.sender == employee
+            _msgSender() == to
+            || _msgSender() == owner()
             || getSendersEmployerId() == employerId
-            || msg.sender == owner()
         ,
             "You don't have permission to delete this approval"
         );
@@ -83,6 +87,8 @@ IJobNFT
      * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
      * It's worth noting that an employee can only hold one badge per employer.
      * A pre-existing badge gets overwritten by the next
+     * @param to The address to mint the NFT to
+     * @param employerId The ID of the employer of this job
      */
     function mintFor(address _employee, uint32 _employerId) public {
         MintApproval memory approval = getApproval(_employee, _employerId);
@@ -107,6 +113,10 @@ IJobNFT
 
     /**
      * @dev Can a given employee mint a job with
+     * @param _uri The uri of the job badge nft
+     * @param _minter The address of the minter (employee)
+     * @param _employerId The ID of the employer of this job
+     * @return true if the employee can mint a job with the given uri and employerId
      */
     function canMintJob(string memory _uri, address _minter, uint32 _employerId ) external view returns (bool){
         MintApproval memory approval = getApproval(_minter, _employerId);
@@ -117,13 +127,18 @@ IJobNFT
 
     /**
      * @dev Get the approval for a given employee
+     * @param _employee The employee to get the approval for
+     * @param _employerId The employerId to get the approval for
+     * @return The approval for the given employee and employerId
      */
     function getApproval(address employee, uint32 employerId) public view returns (MintApproval memory) {
         return employeeToApprovals[employee][employerId];
     }
 
     /**
-     * @dev Get the approval for a given employee
+     * @dev Get the employerId from a job ID
+     * @param _jobId The jobId to get the employerId for
+     * @return The employerId for the given jobId
      */
     function getEmployerIdFromJobId(uint256 _jobId) public view returns (uint32) {
         return jobToEmployerId[_jobId];
@@ -131,6 +146,9 @@ IJobNFT
 
     /**
      * @dev Get the job id of the given employee at a employer
+     * @param _employee The employee to get the job id for
+     * @param _employerId The employerId to get the job id for
+     * @return The job id for the given employee and employerId
      */
     function getJobIdFromEmployeeAndEmployer(address _employee, uint32 _employerId) external view returns (uint256) {
         return employeeToJobIds[_employee][_employerId];
@@ -138,12 +156,14 @@ IJobNFT
 
     /**
     * @dev Return the employer ID of the msg sender
-     */
+    * @return The employer ID of the msg sender
+    */
     function getSendersEmployerId() public view returns (uint32) {
         return employerSft.employerIdFromWallet(msg.sender);
     }
     /**
      * @dev Burn a token
+     * @param tokenId The token to burn
      */
     function burn(uint256 tokenId) external {
         uint32 employerId = getEmployerIdFromJobId(tokenId);
