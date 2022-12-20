@@ -43,52 +43,52 @@ IJobNFT
     /**
      * @dev Create approval for an employee to mint.
      * It is important to save the employerId here for verification of the badge
-     * @param to The employee to grant mint approval
-     * @param uri The uri of the job badge nft
+     * @param _to The employee to grant mint approval
+     * @param _uri The uri of the job badge nft
      */
     function approveMint(
-        address to,
-        string memory uri
+        address _to,
+        string memory _uri
     ) public {
         uint32 employerId = getSendersEmployerId();
-        MintApproval memory existingApproval = getApproval(to,employerId);
+        MintApproval memory existingApproval = getApproval(_to,employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
         MintApproval memory approval = MintApproval(
-            uri,
+            _uri,
             employerId
         );
 
-        employeeToApprovals[to][employerId] = approval;
+        employeeToApprovals[_to][employerId] = approval;
     }
 
     /**
      * @dev Delete a mint approval for an employee
-     * @param to The address for which the approval should be deleted
-     * @param employerId The employerId for which the approval should be deleted
+     * @param _to The address for which the approval should be deleted
+     * @param _employerId The employerId for which the approval should be deleted
      */
     function deleteMintApproval(
-        address to,
-        uint32 employerId
+        address _to,
+        uint32 _employerId
     ) public {
         require(
-            _msgSender() == to
+            _msgSender() == _to
             || _msgSender() == owner()
-            || getSendersEmployerId() == employerId
+            || getSendersEmployerId() == _employerId
         ,
             "You don't have permission to delete this approval"
         );
 
-        delete employeeToApprovals[employee][employerId];
+        delete employeeToApprovals[_to][_employerId];
     }
 
     /**
      * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
      * It's worth noting that an employee can only hold one badge per employer.
      * A pre-existing badge gets overwritten by the next
-     * @param to The address to mint the NFT to
-     * @param employerId The ID of the employer of this job
+     * @param _employee The address to mint the NFT to
+     * @param _employerId The ID of the employer of this job
      */
     function mintFor(address _employee, uint32 _employerId) public {
         MintApproval memory approval = getApproval(_employee, _employerId);
@@ -131,8 +131,8 @@ IJobNFT
      * @param _employerId The employerId to get the approval for
      * @return The approval for the given employee and employerId
      */
-    function getApproval(address employee, uint32 employerId) public view returns (MintApproval memory) {
-        return employeeToApprovals[employee][employerId];
+    function getApproval(address _employee, uint32 _employerId) public view returns (MintApproval memory) {
+        return employeeToApprovals[_employee][_employerId];
     }
 
     /**
@@ -180,7 +180,7 @@ IJobNFT
         address from,
         address to,
         uint256, /* firstTokenId */
-        uint256 batchSize
+        uint256
     ) internal virtual override(ERC721) {
         require(from == address(0) || to == address(0), "POPP is non-transferable");
     }

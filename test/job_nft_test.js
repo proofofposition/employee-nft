@@ -145,5 +145,45 @@ describe("🚩 Job NFT User Flows", function () {
                 expect(aliceBalance.toBigInt()).to.equal(0);
             });
         });
+        describe("deleteMintApproval()", function () {
+            it("Should be able delete mint approval as an employer", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.approveMint(
+                    alice.address,
+                    "deleted-hash"
+                );
+                let canMint = await myContract.canMintJob("deleted-hash", alice.address, 1);
+                expect(canMint).to.equal(true);
+                await this.employerSft.setEmployerId(2);
+                // bob here will be mocked as employer id 2
+                await expect(
+                    myContract.connect(bob).deleteMintApproval(alice.address, 1)
+                ).to.be.revertedWith("You don't have permission to delete this approval");
+
+                await this.employerSft.setEmployerId(1);
+                await myContract.connect(bob).deleteMintApproval(alice.address, 1)
+                canMint = await myContract.canMintJob("deleted-hash", alice.address, 1);
+                expect(canMint).to.equal(false);
+            });
+
+            it("Should be able delete mint approval as an employee", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.approveMint(
+                    alice.address,
+                    "deleted-hash"
+                );
+                let canMint = await myContract.canMintJob("deleted-hash", alice.address, 1);
+                expect(canMint).to.equal(true);
+                await this.employerSft.setEmployerId(2);
+                // bob here will be mocked as employer id 2
+                await expect(
+                    myContract.connect(bob).deleteMintApproval(alice.address, 1)
+                ).to.be.revertedWith("You don't have permission to delete this approval");
+
+                await myContract.connect(alice).deleteMintApproval(alice.address, 1)
+                canMint = await myContract.canMintJob("deleted-hash", alice.address, 1);
+                expect(canMint).to.equal(false);
+            });
+        });
     });
 });
