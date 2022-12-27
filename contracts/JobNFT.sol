@@ -25,7 +25,7 @@ IJobNFT
 
     Counters.Counter private _tokenIdCounter;
     mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
-    mapping(address =>  mapping(uint32 => uint256)) employeeToJobIds;
+    mapping(address => mapping(uint32 => uint256)) employeeToJobIds;
     mapping(uint256 => uint32) jobToEmployerId;
 
     struct MintApproval {
@@ -51,7 +51,7 @@ IJobNFT
         string memory _uri
     ) public {
         uint32 employerId = getSendersEmployerId();
-        MintApproval memory existingApproval = getApproval(_to,employerId);
+        MintApproval memory existingApproval = getApproval(_to, employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
@@ -118,11 +118,11 @@ IJobNFT
      * @param _employerId The ID of the employer of this job
      * @return true if the employee can mint a job with the given uri and employerId
      */
-    function canMintJob(string memory _uri, address _minter, uint32 _employerId ) external view returns (bool){
+    function canMintJob(string memory _uri, address _minter, uint32 _employerId) external view returns (bool){
         MintApproval memory approval = getApproval(_minter, _employerId);
 
         return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(_uri))
-            && approval.employerId == _employerId;
+        && approval.employerId == _employerId;
     }
 
     /**
@@ -152,6 +152,16 @@ IJobNFT
      */
     function getJobIdFromEmployeeAndEmployer(address _employee, uint32 _employerId) external view returns (uint256) {
         return employeeToJobIds[_employee][_employerId];
+    }
+
+    /**
+     * @dev check if a given wallet is employed by a given employer
+     * @param _employee The employee to check
+     * @param _employerId The employerId to check
+     * @return true if the employee is employed by the given employer
+     */
+    function isEmployedBy(address _employee, uint32 _employerId) external view returns (bool) {
+        return employeeToJobIds[_employee][_employerId] != 0;
     }
 
     /**
