@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import "popp-interfaces/IEmployerSft.sol";
 
@@ -16,7 +16,7 @@ IEmployerSft {
         employerId = _employerId;
     }
 
-    function employerIdFromWallet(address _address) external view returns (uint32) {
+    function employerIdFromWallet(address) external view returns (uint32) {
         return employerId;
     }
 }

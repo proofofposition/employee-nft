@@ -8,6 +8,7 @@
 // yarn test && echo "PASSED" || echo "FAILED"
 //
 const {expect} = require("chai");
+const {ethers} = require("hardhat");
 
 describe("🚩 Job NFT User Flows", function () {
     this.timeout(120000);
@@ -25,11 +26,18 @@ describe("🚩 Job NFT User Flows", function () {
         beforeEach(async function () {
             const Popp = await ethers.getContractFactory("JobNFT");
             const EmployerSftMockFactory = await ethers.getContractFactory("EmployerSftMock");
+            const TokenMockFactory = await ethers.getContractFactory("TokenMock");
+            const PriceOracleMockFactory = await ethers.getContractFactory("PriceOracleMock");
             this.employerSft = await EmployerSftMockFactory.deploy();
+            this.erc20 = await TokenMockFactory.deploy();
+            this.priceOracle = await PriceOracleMockFactory.deploy(67);
 
-            myContract = await Popp.deploy(this.employerSft.address);
+            myContract = await Popp.deploy(this.employerSft.address, this.erc20.address, this.priceOracle.address);
 
             [owner, alice, bob] = await ethers.getSigners();
+            expect(await this.erc20.balanceOf(owner.address)).to.equal(
+                1000000000000000000000000n
+            );
         });
 
         describe("mintFor() ", function () {
@@ -145,6 +153,7 @@ describe("🚩 Job NFT User Flows", function () {
                 expect(aliceBalance.toBigInt()).to.equal(0);
             });
         });
+
         describe("deleteMintApproval()", function () {
             it("Should be able delete mint approval as an employer", async function () {
                 await this.employerSft.setEmployerId(1);
@@ -185,5 +194,79 @@ describe("🚩 Job NFT User Flows", function () {
                 expect(canMint).to.equal(false);
             });
         });
+
+        describe("sePrice() ", function () {
+            it("Should be able to set the price", async function () {
+                await myContract.connect(owner).setPrice(100);
+                expect(await myContract.getPrice()).to.equal(
+                    100
+                );
+            });
+
+            it("Should not be able to set the price as a non-owner", async function () {
+                await expect(
+                    myContract.connect(alice).setPrice(100)
+                ).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+        });
+
+        describe("paid approveMint() ", function () {
+            it("Should be able to approve an employee to mint and pay the fee", async function () {
+                await this.employerSft.setEmployerId(1);
+                await myContract.connect(owner).setPrice(345);
+
+                await this.erc20.connect(owner).transfer(bob.address, 5149253731343283582n);
+                let fee = await myContract.getTokenFee();
+                await this.erc20.connect(bob).approve(myContract.address, fee);
+
+                expect(fee/(10**18)).to.equal(
+                    5.149253731343284 // $POPP
+                );
+
+                await myContract.connect(bob).approveMint(
+                    alice.address,
+                    "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
+                );
+
+                let canMint = await myContract.canMintJob("QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr", alice.address, 1);
+                expect(canMint).to.equal(true);
+
+                expect(await this.erc20.balanceOf(bob.address)).to.equal(
+                    0
+                );
+
+            });
+        });
+
+        describe("selfDestruct() ", function () {
+            it("Owner should be able to destruct contract", async function () {
+                await owner.sendTransaction({
+                    to: myContract.address,
+                    value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
+                });
+                expect((await myContract.provider.getBalance(myContract.address)).toBigInt()).to.equal(
+                    10000000000000000000n
+                );
+
+                await myContract.connect(owner).selfDestruct();
+                // test transfer of ETH back to owner
+                expect((await myContract.provider.getBalance(myContract.address)).toBigInt()).to.equal(
+                    0
+                );
+                expect((await myContract.provider.getBalance(owner.address)).toBigInt()).to.equal(
+                    9999892515146434272564n
+                );
+                await expect(
+                    myContract.getPrice()
+                ).to.be.reverted;
+            });
+
+            it("Non-owner should not be allowed to destruct", async function () {
+                await expect(
+                    myContract.connect(alice).selfDestruct()
+                ).to.be.revertedWith("Ownable: caller is not the owner");
+            });
+        });
+
     });
 });

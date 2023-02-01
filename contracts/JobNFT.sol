@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "popp-interfaces/IEmployerSft.sol";
 import "popp-interfaces/IJobNFT.sol";
+import "popp-interfaces/IPriceOracle.sol";
 
 // Desired Features
 // - Approve minting of new job NFTs done by the employer
@@ -14,6 +16,7 @@ import "popp-interfaces/IJobNFT.sol";
 // - Check if a given wallet can mint a job NFT
 // - Burn Tokens
 // - ERC721 full interface (base, metadata, enumerable)
+// - Calculate the price and pay the fee to mint a new job NFT in $POPP ERC-20
 contract JobNFT is
 ERC721,
 ERC721URIStorage,
@@ -21,7 +24,11 @@ Ownable,
 IJobNFT
 {
     IEmployerSft employerSft;
+    IPriceOracle priceOracle;
+    IERC20 erc20Token;
     using Counters for Counters.Counter;
+    /** price in us cents */
+    uint32 private price;
 
     Counters.Counter private _tokenIdCounter;
     mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
@@ -36,8 +43,14 @@ IJobNFT
     /**
      * @dev We use the employer SFT to map a wallet to an employer sft
      */
-    constructor(address _employerSftAddress) ERC721("Proof Of Position", "POPP") {
+    constructor(
+        address _employerSftAddress,
+        address _erc20TokenAddress,
+        address _priceOracleAddress
+    ) ERC721("Proof Of Position", "POPP") {
         employerSft = IEmployerSft(_employerSftAddress);
+        erc20Token = IERC20(_erc20TokenAddress);
+        priceOracle = IPriceOracle(_priceOracleAddress);
     }
 
     /**
@@ -55,6 +68,8 @@ IJobNFT
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
+        payTokenFee();
+
         MintApproval memory approval = MintApproval(
             _uri,
             employerId
@@ -171,6 +186,7 @@ IJobNFT
     function getSendersEmployerId() public view returns (uint32) {
         return employerSft.employerIdFromWallet(msg.sender);
     }
+
     /**
      * @dev Burn a token
      * @param tokenId The token to burn
@@ -218,5 +234,35 @@ IJobNFT
     returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function setPrice(uint32 _price) external onlyOwner {
+        price = _price;
+    }
+
+    function getPrice() external view returns (uint32) {
+        return price;
+    }
+
+    function getTokenFee() external view returns (uint256) {
+        return priceOracle.centsToToken(price);
+    }
+
+    function payTokenFee() internal {
+        uint256 totalPrice = priceOracle.centsToToken(price);
+        erc20Token.transferFrom(_msgSender(), address(owner()), totalPrice);
+    }
+
+    receive() external payable {}
+
+    fallback() external payable {}
+
+    function withdraw() external onlyOwner {
+        erc20Token.approve(address(owner()), erc20Token.balanceOf(address(this)));
+        payable(owner()).transfer(address(this).balance);
+    }
+
+    function selfDestruct() external onlyOwner {
+        selfdestruct(payable(owner()));
     }
 }
