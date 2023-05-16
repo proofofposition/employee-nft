@@ -23,6 +23,7 @@ ERC721URIStorage,
 Ownable,
 IJobNFT
 {
+    string private _baseURI = "";
     IEmployerSft employerSft;
     IPriceOracle priceOracle;
     IERC20 erc20Token;
@@ -55,16 +56,44 @@ IJobNFT
 
     /**
      * @dev Create approval for an employee to mint.
-     * It is important to save the employerId here for verification of the badge
-     * @param _to The employee to grant mint approval
+     * It is important to save the employerId here for verification of the badge.
+     * We get the employerId from message sender employer badge sft
+     * @param _employee The employee to grant mint approval
      * @param _uri The uri of the job badge nft
      */
     function approveMint(
-        address _to,
+        address _employee,
         string memory _uri
     ) public {
         uint32 employerId = getSendersEmployerId();
-        MintApproval memory existingApproval = getApproval(_to, employerId);
+        _approveMint(_employee, _uri, employerId);
+    }
+
+    /**
+    * @dev Create approval for an employee to mint on behalf of an employer (admin only).
+     * @param _to The employee to grant mint approval
+     * @param _uri The uri of the job badge nft
+     * @param _employerId The employerId for which the approval should be created
+     */
+    function approveMintForEmployer(
+        address _employee,
+        string memory _uri,
+        uint32 _employerId
+    ) external onlyOwner {
+        _approveMint(_employee, _uri, employerId);
+    }
+
+    /**
+     * @dev Mint a new job badge NFT
+     * @param _employee The employee to mint the job badge for
+     * @param _employerId The employerId for which the approval should be created
+     */
+    function _approveMint(
+        address _employee,
+        string memory _uri,
+        uint32 _employerId
+    ) internal {
+        MintApproval memory existingApproval = getApproval(_employee, employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
@@ -75,27 +104,27 @@ IJobNFT
             employerId
         );
 
-        employeeToApprovals[_to][employerId] = approval;
+        employeeToApprovals[_employee][employerId] = approval;
     }
 
     /**
      * @dev Delete a mint approval for an employee
-     * @param _to The address for which the approval should be deleted
+     * @param _employee The address for which the approval should be deleted
      * @param _employerId The employerId for which the approval should be deleted
      */
     function deleteMintApproval(
-        address _to,
+        address _employee,
         uint32 _employerId
     ) public {
         require(
-            _msgSender() == _to
+            _msgSender() == _employee
             || _msgSender() == owner()
             || getSendersEmployerId() == _employerId
         ,
             "You don't have permission to delete this approval"
         );
 
-        delete employeeToApprovals[_to][_employerId];
+        delete employeeToApprovals[_employee][_employerId];
     }
 
     /**
@@ -108,7 +137,7 @@ IJobNFT
     function mintFor(address _employee, uint32 _employerId) public {
         MintApproval memory approval = getApproval(_employee, _employerId);
 
-        require(approval.employerId == _employerId, "you don't have approval to mint");
+        require(approval.employerId == _employerId, "employee doesn't have approval to mint");
         if (employeeToJobIds[_employee][_employerId] != 0) {
             // If the employee already has a job NFT for this employer, burn it
             _burn(employeeToJobIds[_employee][_employerId]);
@@ -216,6 +245,17 @@ IJobNFT
     override(ERC721, ERC721URIStorage)
     {
         super._burn(tokenId);
+    }
+
+    function _baseURI() internal view virtual returns (string memory) {
+        return _baseURI;
+    }
+
+    /**
+    * @dev Sets `baseURI` as the `_baseURI` for all tokens
+     */
+    function setBaseURI(string memory baseURI) external onlyOwner {
+        _baseURI = baseURI;
     }
 
     function tokenURI(uint256 tokenId)
