@@ -16,7 +16,6 @@ import "popp-interfaces/IPriceOracle.sol";
 // - Check if a given wallet can mint a job NFT
 // - Burn Tokens
 // - ERC721 full interface (base, metadata, enumerable)
-// - Calculate the price and pay the fee to mint a new job NFT in $POPP ERC-20
 contract JobNFT is
 ERC721,
 ERC721URIStorage,
@@ -25,11 +24,7 @@ IJobNFT
 {
     string private _baseURI = "";
     IEmployerSft employerSft;
-    IPriceOracle priceOracle;
-    IERC20 erc20Token;
     using Counters for Counters.Counter;
-    /** price in us cents */
-    uint32 private price;
 
     Counters.Counter private _tokenIdCounter;
     mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
@@ -45,13 +40,9 @@ IJobNFT
      * @dev We use the employer SFT to map a wallet to an employer sft
      */
     constructor(
-        address _employerSftAddress,
-        address _erc20TokenAddress,
-        address _priceOracleAddress
+        address _employerSftAddress
     ) ERC721("Proof Of Position", "POPP") {
         employerSft = IEmployerSft(_employerSftAddress);
-        erc20Token = IERC20(_erc20TokenAddress);
-        priceOracle = IPriceOracle(_priceOracleAddress);
     }
 
     /**
@@ -97,7 +88,6 @@ IJobNFT
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
         require(employerId != 0, "You need to be an employer to approve");
-        payTokenFee();
 
         MintApproval memory approval = MintApproval(
             _uri,
@@ -276,29 +266,11 @@ IJobNFT
         return super.supportsInterface(interfaceId);
     }
 
-    function setPrice(uint32 _price) external onlyOwner {
-        price = _price;
-    }
-
-    function getPrice() external view returns (uint32) {
-        return price;
-    }
-
-    function getTokenFee() external view returns (uint256) {
-        return priceOracle.centsToToken(price);
-    }
-
-    function payTokenFee() internal {
-        uint256 totalPrice = priceOracle.centsToToken(price);
-        erc20Token.transferFrom(_msgSender(), address(owner()), totalPrice);
-    }
-
     receive() external payable {}
 
     fallback() external payable {}
 
     function withdraw() external onlyOwner {
-        erc20Token.approve(address(owner()), erc20Token.balanceOf(address(this)));
         payable(owner()).transfer(address(this).balance);
     }
 
