@@ -5,10 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "popp-interfaces/IEmployerSft.sol";
 import "popp-interfaces/IJobNFT.sol";
-import "popp-interfaces/IPriceOracle.sol";
 
 // Desired Features
 // - Approve minting of new job NFTs done by the employer
