@@ -19,14 +19,14 @@ module.exports = {
     goerli: {
       url: GOERLI_API_URL,
       accounts: [
-        PRIVATE_KEY,
-      ],
+        PRIVATE_KEY
+      ]
     },
     sepolia: {
       url: SEPOLIA_API_URL,
       accounts: [
-        PRIVATE_KEY,
-      ],
+        PRIVATE_KEY
+      ]
     }
   },
   gasReporter: {

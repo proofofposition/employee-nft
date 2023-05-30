@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "popp-interfaces/IEmployerSft.sol";
-import "popp-interfaces/IJobNFT.sol";
+import "popp-interfaces/IEmployeeNft.sol";
 import "popp-interfaces/IPriceOracle.sol";
 
 // Desired Features
@@ -17,24 +17,24 @@ import "popp-interfaces/IPriceOracle.sol";
 // - Burn Tokens
 // - ERC721 full interface (base, metadata, enumerable)
 // - Calculate the price and pay the fee to mint a new job NFT in $POPP ERC-20
-contract JobNFT is
+contract EmployeeBadge is
 ERC721,
 ERC721URIStorage,
 Ownable,
-IJobNFT
+IEmployeeNft
 {
-    string private _baseURI = "";
-    IEmployerSft employerSft;
-    IPriceOracle priceOracle;
-    IERC20 erc20Token;
+    string private baseURI = "";
+    IEmployerSft private employerSft;
+    IPriceOracle private priceOracle;
+    IERC20 private erc20Token;
     using Counters for Counters.Counter;
     /** price in us cents */
     uint32 private price;
 
     Counters.Counter private _tokenIdCounter;
-    mapping(address => mapping(uint32 => MintApproval)) employeeToApprovals;
-    mapping(address => mapping(uint32 => uint256)) employeeToJobIds;
-    mapping(uint256 => uint32) jobToEmployerId;
+    mapping(address => mapping(uint32 => MintApproval)) private employeeToApprovals;
+    mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
+    mapping(uint256 => uint32) private jobToEmployerId;
 
     struct MintApproval {
         string uri;
@@ -71,7 +71,7 @@ IJobNFT
 
     /**
     * @dev Create approval for an employee to mint on behalf of an employer (admin only).
-     * @param _to The employee to grant mint approval
+     * @param _employee The employee to grant mint approval
      * @param _uri The uri of the job badge nft
      * @param _employerId The employerId for which the approval should be created
      */
@@ -80,7 +80,7 @@ IJobNFT
         string memory _uri,
         uint32 _employerId
     ) external onlyOwner {
-        _approveMint(_employee, _uri, employerId);
+        _approveMint(_employee, _uri, _employerId);
     }
 
     /**
@@ -93,18 +93,18 @@ IJobNFT
         string memory _uri,
         uint32 _employerId
     ) internal {
-        MintApproval memory existingApproval = getApproval(_employee, employerId);
+        MintApproval memory existingApproval = getApproval(_employee, _employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
-        require(employerId != 0, "You need to be an employer to approve");
+        require(_employerId != 0, "You need to be an employer to approve");
         payTokenFee();
 
         MintApproval memory approval = MintApproval(
             _uri,
-            employerId
+            _employerId
         );
 
-        employeeToApprovals[_employee][employerId] = approval;
+        employeeToApprovals[_employee][_employerId] = approval;
     }
 
     /**
@@ -247,15 +247,15 @@ IJobNFT
         super._burn(tokenId);
     }
 
-    function _baseURI() internal view virtual returns (string memory) {
-        return _baseURI;
+    function _baseURI() internal view virtual override(ERC721) returns (string memory) {
+        return baseURI;
     }
 
     /**
     * @dev Sets `baseURI` as the `_baseURI` for all tokens
      */
-    function setBaseURI(string memory baseURI) external onlyOwner {
-        _baseURI = baseURI;
+    function setBaseURI(string memory uri) external onlyOwner {
+        baseURI = uri;
     }
 
     function tokenURI(uint256 tokenId)
@@ -300,9 +300,5 @@ IJobNFT
     function withdraw() external onlyOwner {
         erc20Token.approve(address(owner()), erc20Token.balanceOf(address(this)));
         payable(owner()).transfer(address(this).balance);
-    }
-
-    function selfDestruct() external onlyOwner {
-        selfdestruct(payable(owner()));
     }
 }

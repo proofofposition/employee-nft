@@ -10,7 +10,7 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
 
-describe("🚩 Job NFT User Flows", function () {
+describe("🚩Employee Badge User Flows", function () {
     this.timeout(120000);
 
     let myContract;
@@ -20,11 +20,11 @@ describe("🚩 Job NFT User Flows", function () {
 
     // console.log("hre:",Object.keys(hre)) // <-- you can access the hardhat runtime env here
 
-    describe("JobNFT", function () {
+    describe("EmployeeBadge", function () {
         // `beforeEach` will run before each test, re-deploying the contract every
         // time. It receives a callback, which can be async.
         beforeEach(async function () {
-            const Popp = await ethers.getContractFactory("JobNFT");
+            const Popp = await ethers.getContractFactory("EmployeeBadge");
             const EmployerSftMockFactory = await ethers.getContractFactory("EmployerSftMock");
             const TokenMockFactory = await ethers.getContractFactory("TokenMock");
             const PriceOracleMockFactory = await ethers.getContractFactory("PriceOracleMock");
@@ -114,7 +114,7 @@ describe("🚩 Job NFT User Flows", function () {
                 // test no approval
                 await expect(
                     myContract.connect(bob).mintFor(bob.address, 1)
-                ).to.be.revertedWith("you don't have approval to mint");
+                ).to.be.revertedWith("employee doesn't have approval to mint");
                 const bobBalance = await myContract.balanceOf(bob.address);
                 expect(bobBalance.toBigInt()).to.equal(0);
             });
@@ -247,24 +247,6 @@ describe("🚩 Job NFT User Flows", function () {
                 expect((await myContract.provider.getBalance(myContract.address)).toBigInt()).to.equal(
                     10000000000000000000n
                 );
-
-                await myContract.connect(owner).selfDestruct();
-                // test transfer of ETH back to owner
-                expect((await myContract.provider.getBalance(myContract.address)).toBigInt()).to.equal(
-                    0
-                );
-                expect((await myContract.provider.getBalance(owner.address)).toBigInt()).to.equal(
-                    9999892515146434272564n
-                );
-                await expect(
-                    myContract.getPrice()
-                ).to.be.reverted;
-            });
-
-            it("Non-owner should not be allowed to destruct", async function () {
-                await expect(
-                    myContract.connect(alice).selfDestruct()
-                ).to.be.revertedWith("Ownable: caller is not the owner");
             });
         });
 
