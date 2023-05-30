@@ -20,7 +20,7 @@ ERC721URIStorage,
 Ownable,
 IJobNFT
 {
-    string private _baseURI = "";
+    string baseURI = "";
     IEmployerSft employerSft;
     using Counters for Counters.Counter;
 
@@ -59,8 +59,8 @@ IJobNFT
     }
 
     /**
-    * @dev Create approval for an employee to mint on behalf of an employer (admin only).
-     * @param _to The employee to grant mint approval
+     * @dev Create approval for an employee to mint on behalf of an employer (admin only).
+     * @param _employee The employee to grant mint approval
      * @param _uri The uri of the job badge nft
      * @param _employerId The employerId for which the approval should be created
      */
@@ -69,7 +69,7 @@ IJobNFT
         string memory _uri,
         uint32 _employerId
     ) external onlyOwner {
-        _approveMint(_employee, _uri, employerId);
+        _approveMint(_employee, _uri, _employerId);
     }
 
     /**
@@ -82,17 +82,17 @@ IJobNFT
         string memory _uri,
         uint32 _employerId
     ) internal {
-        MintApproval memory existingApproval = getApproval(_employee, employerId);
+        MintApproval memory existingApproval = getApproval(_employee, _employerId);
         require(existingApproval.employerId == 0, "Approval already exists for this employer");
 
-        require(employerId != 0, "You need to be an employer to approve");
+        require(_employerId != 0, "You need to be an employer to approve");
 
         MintApproval memory approval = MintApproval(
             _uri,
-            employerId
+            _employerId
         );
 
-        employeeToApprovals[_employee][employerId] = approval;
+        employeeToApprovals[_employee][_employerId] = approval;
     }
 
     /**
@@ -235,15 +235,22 @@ IJobNFT
         super._burn(tokenId);
     }
 
-    function _baseURI() internal view virtual returns (string memory) {
-        return _baseURI;
+    function _baseURI() internal view virtual override(ERC721) returns (string memory) {
+        return baseURI;
     }
 
     /**
     * @dev Sets `baseURI` as the `_baseURI` for all tokens
      */
-    function setBaseURI(string memory baseURI) external onlyOwner {
-        _baseURI = baseURI;
+    function setBaseURI(string memory _newBaseURI) external onlyOwner {
+        baseURI = _newBaseURI;
+    }
+    
+    /**
+    * @dev Sets `tokenURI` as the `_tokenURI` for the given token
+    */
+    function setTokenURI(uint256 tokenId, string memory _tokenURI) external  onlyOwner {
+        _setTokenURI(tokenId, _tokenURI);
     }
 
     function tokenURI(uint256 tokenId)
