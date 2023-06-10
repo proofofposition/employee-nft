@@ -25,8 +25,6 @@ IEmployeeNft
 {
     string private baseURI = "";
     IEmployerSft private employerSft;
-    IPriceOracle private priceOracle;
-    IERC20 private erc20Token;
     using Counters for Counters.Counter;
     /** price in us cents */
     uint32 private price;
@@ -45,13 +43,9 @@ IEmployeeNft
      * @dev We use the employer SFT to map a wallet to an employer sft
      */
     constructor(
-        address _employerSftAddress,
-        address _erc20TokenAddress,
-        address _priceOracleAddress
+        address _employerSftAddress
     ) ERC721("Proof Of Position", "POPP") {
         employerSft = IEmployerSft(_employerSftAddress);
-        erc20Token = IERC20(_erc20TokenAddress);
-        priceOracle = IPriceOracle(_priceOracleAddress);
     }
 
     /**
@@ -276,29 +270,11 @@ IEmployeeNft
         return super.supportsInterface(interfaceId);
     }
 
-    function setPrice(uint32 _price) external onlyOwner {
-        price = _price;
-    }
-
-    function getPrice() external view returns (uint32) {
-        return price;
-    }
-
-    function getTokenFee() external view returns (uint256) {
-        return priceOracle.centsToToken(price);
-    }
-
-    function payTokenFee() internal {
-        uint256 totalPrice = priceOracle.centsToToken(price);
-        erc20Token.transferFrom(_msgSender(), address(owner()), totalPrice);
-    }
-
     receive() external payable {}
 
     fallback() external payable {}
 
     function withdraw() external onlyOwner {
-        erc20Token.approve(address(owner()), erc20Token.balanceOf(address(this)));
         payable(owner()).transfer(address(this).balance);
     }
 }
