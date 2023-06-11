@@ -6,9 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "popp-interfaces/IEmployerSft.sol";
-import "popp-interfaces/IEmployeeNft.sol";
-import "popp-interfaces/IPriceOracle.sol";
 
 // Desired Features
 // - Approve minting of new job NFTs done by the employer
@@ -20,118 +17,29 @@ import "popp-interfaces/IPriceOracle.sol";
 contract EmployeeBadge is
 ERC721,
 ERC721URIStorage,
-Ownable,
-IEmployeeNft
+Ownable
 {
     string private baseURI = "";
-    IEmployerSft private employerSft;
     using Counters for Counters.Counter;
-    /** price in us cents */
-    uint32 private price;
 
     Counters.Counter private _tokenIdCounter;
-    mapping(address => mapping(uint32 => MintApproval)) private employeeToApprovals;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
     mapping(uint256 => uint32) private jobToEmployerId;
 
-    struct MintApproval {
-        string uri;
-        uint32 employerId;
-    }
+    constructor() ERC721("Proof Of Position Alpha 0.1", "POPP_0.1") { }
 
     /**
-     * @dev We use the employer SFT to map a wallet to an employer sft
-     */
-    constructor(
-        address _employerSftAddress
-    ) ERC721("Proof Of Position", "POPP") {
-        employerSft = IEmployerSft(_employerSftAddress);
-    }
-
-    /**
-     * @dev Create approval for an employee to mint.
-     * It is important to save the employerId here for verification of the badge.
-     * We get the employerId from message sender employer badge sft
-     * @param _employee The employee to grant mint approval
-     * @param _uri The uri of the job badge nft
-     */
-    function approveMint(
+    * @dev Mint a new job NFT. This is done when onboarding a new employee.
+    * @param _employee The address of the employee
+    * @param _employerId The ID of the employer of this job
+    * @param _uri The uri of the job badge nft
+    */
+    function mint(
         address _employee,
+        uint32 _employerId,
         string memory _uri
-    ) public {
-        uint32 employerId = getSendersEmployerId();
-        _approveMint(_employee, _uri, employerId);
-    }
-
-    /**
-    * @dev Create approval for an employee to mint on behalf of an employer (admin only).
-     * @param _employee The employee to grant mint approval
-     * @param _uri The uri of the job badge nft
-     * @param _employerId The employerId for which the approval should be created
-     */
-    function approveMintForEmployer(
-        address _employee,
-        string memory _uri,
-        uint32 _employerId
     ) external onlyOwner {
-        _approveMint(_employee, _uri, _employerId);
-    }
 
-    /**
-     * @dev Mint a new job badge NFT
-     * @param _employee The employee to mint the job badge for
-     * @param _employerId The employerId for which the approval should be created
-     */
-    function _approveMint(
-        address _employee,
-        string memory _uri,
-        uint32 _employerId
-    ) internal {
-        MintApproval memory existingApproval = getApproval(_employee, _employerId);
-        require(existingApproval.employerId == 0, "Approval already exists for this employer");
-
-        require(_employerId != 0, "You need to be an employer to approve");
-        payTokenFee();
-
-        MintApproval memory approval = MintApproval(
-            _uri,
-            _employerId
-        );
-
-        employeeToApprovals[_employee][_employerId] = approval;
-    }
-
-    /**
-     * @dev Delete a mint approval for an employee
-     * @param _employee The address for which the approval should be deleted
-     * @param _employerId The employerId for which the approval should be deleted
-     */
-    function deleteMintApproval(
-        address _employee,
-        uint32 _employerId
-    ) public {
-        require(
-            _msgSender() == _employee
-            || _msgSender() == owner()
-            || getSendersEmployerId() == _employerId
-        ,
-            "You don't have permission to delete this approval"
-        );
-
-        delete employeeToApprovals[_employee][_employerId];
-    }
-
-    /**
-     * @dev Mint a new pre-approved job NFT. This handles the minting pre-existing and new jobs
-     * It's worth noting that an employee can only hold one badge per employer.
-     * A pre-existing badge gets overwritten by the next
-     * @param _employee The address to mint the NFT to
-     * @param _employerId The ID of the employer of this job
-     */
-    function mintFor(address _employee, uint32 _employerId) public {
-        MintApproval memory approval = getApproval(_employee, _employerId);
-
-        require(approval.employerId == _employerId, "employee doesn't have approval to mint");
         if (employeeToJobIds[_employee][_employerId] != 0) {
             // If the employee already has a job NFT for this employer, burn it
             _burn(employeeToJobIds[_employee][_employerId]);
@@ -141,87 +49,17 @@ IEmployeeNft
         uint256 tokenId = _tokenIdCounter.current();
 
         _safeMint(_employee, tokenId);
-        _setTokenURI(tokenId, approval.uri);
+        _setTokenURI(tokenId, _uri);
 
-        jobToEmployerId[tokenId] = approval.employerId;
-        employeeToJobIds[_employee][approval.employerId] = tokenId;
-
-        delete employeeToApprovals[_employee][approval.employerId];
-    }
-
-    /**
-     * @dev Can a given employee mint a job with
-     * @param _uri The uri of the job badge nft
-     * @param _minter The address of the minter (employee)
-     * @param _employerId The ID of the employer of this job
-     * @return true if the employee can mint a job with the given uri and employerId
-     */
-    function canMintJob(string memory _uri, address _minter, uint32 _employerId) external view returns (bool){
-        MintApproval memory approval = getApproval(_minter, _employerId);
-
-        return keccak256(abi.encodePacked(approval.uri)) == keccak256(abi.encodePacked(_uri))
-        && approval.employerId == _employerId;
-    }
-
-    /**
-     * @dev Get the approval for a given employee
-     * @param _employee The employee to get the approval for
-     * @param _employerId The employerId to get the approval for
-     * @return The approval for the given employee and employerId
-     */
-    function getApproval(address _employee, uint32 _employerId) public view returns (MintApproval memory) {
-        return employeeToApprovals[_employee][_employerId];
-    }
-
-    /**
-     * @dev Get the employerId from a job ID
-     * @param _jobId The jobId to get the employerId for
-     * @return The employerId for the given jobId
-     */
-    function getEmployerIdFromJobId(uint256 _jobId) public view returns (uint32) {
-        return jobToEmployerId[_jobId];
-    }
-
-    /**
-     * @dev Get the job id of the given employee at a employer
-     * @param _employee The employee to get the job id for
-     * @param _employerId The employerId to get the job id for
-     * @return The job id for the given employee and employerId
-     */
-    function getJobIdFromEmployeeAndEmployer(address _employee, uint32 _employerId) external view returns (uint256) {
-        return employeeToJobIds[_employee][_employerId];
-    }
-
-    /**
-     * @dev check if a given wallet is employed by a given employer
-     * @param _employee The employee to check
-     * @param _employerId The employerId to check
-     * @return true if the employee is employed by the given employer
-     */
-    function isEmployedBy(address _employee, uint32 _employerId) external view returns (bool) {
-        return employeeToJobIds[_employee][_employerId] != 0;
-    }
-
-    /**
-    * @dev Return the employer ID of the msg sender
-    * @return The employer ID of the msg sender
-    */
-    function getSendersEmployerId() public view returns (uint32) {
-        return employerSft.employerIdFromWallet(msg.sender);
+        jobToEmployerId[tokenId] = _employerId;
+        employeeToJobIds[_employee][_employerId] = tokenId;
     }
 
     /**
      * @dev Burn a token
      * @param tokenId The token to burn
      */
-    function burn(uint256 tokenId) external {
-        uint32 employerId = getEmployerIdFromJobId(tokenId);
-        require(
-            _msgSender() == ownerOf(tokenId)
-            || owner() == _msgSender()
-            || getSendersEmployerId() == employerId,
-            "Only the employee or employer can do this"
-        );
+    function burn(uint256 tokenId) external onlyOwner {
         _burn(tokenId);
     }
 
@@ -264,7 +102,7 @@ IEmployeeNft
     function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC721, IERC165)
+    override(ERC721, ERC721URIStorage)
     returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -274,7 +112,7 @@ IEmployeeNft
 
     fallback() external payable {}
 
-    function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+    function selfDestruct() public onlyOwner {
+        selfdestruct(payable(owner()));
     }
 }
