@@ -2,6 +2,8 @@ require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require('dotenv').config({path:__dirname+'/.env'})
+require('@openzeppelin/hardhat-upgrades');
+
 const { SEPOLIA_API_URL, GOERLI_API_URL, PRIVATE_KEY, REPORT_GAS } = process.env;
 
 /** @type import('hardhat/config').HardhatUserConfig */

@@ -1,0 +1,28 @@
+{
+  "name": "Head Of Engineering for Solutions: Ringier SA",
+  "image": "ipfs://QmYNVEjbSzpmMjSL1H8gct7UZ49cguKaAW3xMgR3tXP62v",
+  "employer": "Ringier",
+  "attributes": [
+    {
+      "display_type": "date",
+      "trait_type": "start date",
+      "value": 1546360800
+    },
+    {
+      "trait_type": "Employer",
+      "value": "Ringier"
+    },
+    {
+      "trait_type": "Department",
+      "value": "Internal Solutions"
+    },
+    {
+      "trait_type": "Governance Level",
+      "value": "Board of Directors"
+    },
+    {
+      "trait_type": "Special Groups",
+      "value": "Ringier X"
+    }
+  ]
+}
