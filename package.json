@@ -29,6 +29,6 @@
     "@openzeppelin/contracts-upgradeable": "*",
     "@openzeppelin/hardhat-upgrades": "^1.28.0",
     "dotenv": "^16.0.2",
-    "popp-interfaces": "^2.1.2"
+    "popp-interfaces": "^2.2.0"
   }
 }

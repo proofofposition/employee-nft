@@ -142,7 +142,6 @@ UUPSUpgradeable
     override
     {}
 
-
     function tokenURI(uint256 tokenId)
     public
     view
