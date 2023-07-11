@@ -111,6 +111,11 @@ describe("🚩Employee Badge User Flows", function () {
                 await myContract.connect(bob).burn(1);
                 const aliceBalance = await myContract.balanceOf(alice.address);
                 expect(aliceBalance.toBigInt()).to.equal(0);
+
+                // test that employment history remains
+                expect(await myContract.tokenURI(1)).to.equal(
+                    'ipfs://QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr'
+                );
             });
         });
     });

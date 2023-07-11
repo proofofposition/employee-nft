@@ -26,7 +26,7 @@ UUPSUpgradeable
     IEmployerSft private employerSft;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
     mapping(uint256 => uint32) private tokenIdToEmployerId;
-
+    mapping(uint256  => string) private burnedTokenIdToURI;
     /**
          * @dev We use the employer NFT contract to map the msg.sender to the employer id
      */
@@ -148,6 +148,11 @@ UUPSUpgradeable
     override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
     returns (string memory)
     {
+        // we need to keep metadata on chain for burned token to show employment history
+        if (bytes(burnedTokenIdToURI[tokenId]).length > 0) {
+            return burnedTokenIdToURI[tokenId];
+        }
+
         return super.tokenURI(tokenId);
     }
 
@@ -159,11 +164,12 @@ UUPSUpgradeable
     {
         return super.supportsInterface(interfaceId);
     }
+
     function _burn(uint256 tokenId)
     internal
     override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
     {
-        super._burn(tokenId);
-
+        burnedTokenIdToURI[tokenId] = tokenURI(tokenId);
+        ERC721Upgradeable._burn(tokenId);
     }
 }
