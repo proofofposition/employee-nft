@@ -9,26 +9,48 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "popp-interfaces/IEmployerSft.sol";
 import "popp-interfaces/IEmployeeNft.sol";
 
-// Desired Features
-// - Mint NFTs as an employer
-// - Mint NFTs as an admin
-// - Burn Tokens
-// - ERC721 full interface (baseURI, metadata, enumerable)
+/**
+ * @title EmployeeBadge
+ * @notice This contract represents an employee badge.
+ It is minted by an employer and assigned to an employee as Proof of their Position in the Organization.
+ * @dev This contract is an ERC721 token that is minted by an admin or verified POPP employer and assigned to a new employee.
+ * Desired Features
+ * - Mint a new employee badge for any employer (admin)
+ * - Mint a new employee badge for my employer (employee)
+ * - Burn Tokens
+ * - ERC721 full interface (base, metadata, enumerable)
+*/
 contract EmployeeBadge is
 ERC721Upgradeable,
 ERC721URIStorageUpgradeable,
 OwnableUpgradeable,
 UUPSUpgradeable
 {
+    //////////////
+    // Errors  //
+    /////////////
+    error MissingEmployerBadge();
+    error NonTransferable();
+    //////////////
+    // Types  //
+    /////////////
     using CountersUpgradeable for CountersUpgradeable.Counter;
-
+    //////////////////////
+    // State Variables //
+    /////////////////////
     CountersUpgradeable.Counter private _tokenIdCounter;
     IEmployerSft private employerSft;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
     mapping(uint256 => uint32) private tokenIdToEmployerId;
     mapping(uint256  => string) private burnedTokenIdToURI;
+    /////////////
+    // Events //
+    ///////////
+    event NewBadgeMinted(address indexed _to, string indexed _tokenURI);
+    event TokenBurned(uint256 indexed _tokenId, address indexed _burnedBy);
+
     /**
-         * @dev We use the employer NFT contract to map the msg.sender to the employer id
+     * @dev We use the employer NFT contract to map the msg.sender to the employer id
      */
     function initialize(
         address _employerSftAddress
@@ -41,7 +63,7 @@ UUPSUpgradeable
     }
 
     /**
-    * @dev Mint a new job NFT. This handles the minting pre-existing and new jobs.@author
+    * @dev Mint a new job NFT. This handles the minting pre-existing and new jobs.
     * An employer must hold a employer badge to mint
     *
     * @param _employee The address to mint the NFT to
@@ -54,7 +76,9 @@ UUPSUpgradeable
         string memory _tokenURI
     ) external returns (uint256) {
         uint32 _employerId = employerSft.employerIdFromWallet(msg.sender);
-        require(_employerId != 0, "You need to be a POPP verified employer to do this.");
+        if (_employerId == 0) {
+            revert MissingEmployerBadge();
+        }
 
         return _mintFor(_employee, _tokenURI, _employerId);
     }
@@ -119,29 +143,47 @@ UUPSUpgradeable
         _safeMint(_to, _tokenId);
         _setTokenURI(_tokenId, _tokenURI);
         tokenIdToEmployerId[_tokenId] = _employerId;
+        emit NewBadgeMinted(_to, _tokenURI);
 
         return _tokenId;
     }
 
+    /**
+    * @dev Override the base transfer function to only allow transfers from and to the zero address
+    * @param from The address to transfer from
+    * @param to The address to transfer to
+    */
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256, /* firstTokenId */
         uint256
     ) internal virtual override(ERC721Upgradeable) {
-        require(from == address(0) || to == address(0), "POPP is non-transferable");
+        if (from != address(0) && to != address(0)) {
+            revert NonTransferable();
+        }
     }
 
+    /**
+     * @dev Override the base URI function to return the base URI for the token. We'll use ipfs here
+     */
     function _baseURI() internal view virtual override(ERC721Upgradeable) returns (string memory) {
         return "ipfs://";
     }
 
+    /**
+     * @dev Override the base upgrade function to prevent upgrades from non-owner
+     */
     function _authorizeUpgrade(address newImplementation)
     internal
     onlyOwner
     override
     {}
 
+    /**
+     * @dev Override the base tokenURI function to return the token URI for the token. We'll use ipfs here
+     * @notice We keep track of all burned tokens on chain to show employment history
+     */
     function tokenURI(uint256 tokenId)
     public
     view
@@ -156,6 +198,9 @@ UUPSUpgradeable
         return super.tokenURI(tokenId);
     }
 
+    /**
+     * @dev Override the base supportsInterface function to return the interface support of the contract
+     */
     function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -165,11 +210,15 @@ UUPSUpgradeable
         return super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @dev Override the base burn function to keep track of burned tokens. This to keep employment history
+     */
     function _burn(uint256 tokenId)
     internal
     override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
     {
         burnedTokenIdToURI[tokenId] = tokenURI(tokenId);
         ERC721Upgradeable._burn(tokenId);
+        emit TokenBurned(tokenId, _msgSender());
     }
 }

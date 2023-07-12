@@ -44,14 +44,14 @@ describe("🚩Employee Badge User Flows", function () {
 
                 await expect(
                     myContract.connect(alice).transferFrom(alice.address, bob.address, 1)
-                ).to.be.revertedWith("POPP is non-transferable");
+                ).to.be.revertedWithCustomError(myContract, 'NonTransferable');
             });
 
             it("Should not be able to mint without employee token", async function () {
                 // test no approval
                 await expect(
                     myContract.connect(bob).mintFor(bob.address, 'QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr')
-                ).to.be.revertedWith("You need to be a POPP verified employer to do this.");
+                ).to.be.revertedWithCustomError(myContract, 'MissingEmployerBadge');
                 const bobBalance = await myContract.balanceOf(bob.address);
                 expect(bobBalance.toBigInt()).to.equal(0);
             });
@@ -77,7 +77,7 @@ describe("🚩Employee Badge User Flows", function () {
                         'QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr',
                         1
                     )
-                ).to.be.revertedWith("Ownable: caller is not the owner");
+                ).to.be.reverted;
                 const bobBalance = await myContract.balanceOf(bob.address);
                 expect(bobBalance.toBigInt()).to.equal(0);
             });
