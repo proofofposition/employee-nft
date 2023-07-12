@@ -28,16 +28,16 @@ UUPSUpgradeable
 {
     //////////////
     // Errors  //
-    /////////////
+    ////////////
     error MissingEmployerBadge();
     error NonTransferable();
     //////////////
-    // Types  //
-    /////////////
+    // Types   //
+    ////////////
     using CountersUpgradeable for CountersUpgradeable.Counter;
     //////////////////////
     // State Variables //
-    /////////////////////
+    ////////////////////
     CountersUpgradeable.Counter private _tokenIdCounter;
     IEmployerSft private employerSft;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
