@@ -19,7 +19,7 @@ import "popp-interfaces/IEmployeeNft.sol";
  * - Mint a new employee badge for my employer (employee)
  * - Burn Tokens
  * - ERC721 full interface (base, metadata, enumerable)
-*/
+ */
 contract EmployeeBadge is
 ERC721Upgradeable,
 ERC721URIStorageUpgradeable,
@@ -48,7 +48,6 @@ UUPSUpgradeable
     ///////////
     event NewBadgeMinted(address indexed _to, string indexed _tokenURI);
     event TokenBurned(uint256 indexed _tokenId, address indexed _burnedBy);
-
     /**
      * @dev We use the employer NFT contract to map the msg.sender to the employer id
      */
@@ -211,7 +210,8 @@ UUPSUpgradeable
     }
 
     /**
-     * @dev Override the base burn function to keep track of burned tokens. This to keep employment history
+     * @dev Override the base burn function to keep track of burned tokens.
+     This to keep employment history
      */
     function _burn(uint256 tokenId)
     internal

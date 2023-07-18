@@ -14,3 +14,5 @@ npx hardhat run scripts/deploy.js
 ## Deployed Contracts
 ### Goerli Testnet
 - Contract Address: 0xEc1c73060efd5dd5283AfF81eA5EaE03eA4d512D
+### Sepolia Testnet
+- Contract Address: 0x88904C5Ef29570f999b234F2ae1456C2A02251f2
