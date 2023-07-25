@@ -4,7 +4,6 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "popp-interfaces/IEmployerSft.sol";
 import "popp-interfaces/IEmployeeNft.sol";
@@ -31,14 +30,10 @@ UUPSUpgradeable
     ////////////
     error MissingEmployerBadge();
     error NonTransferable();
-    //////////////
-    // Types   //
-    ////////////
-    using CountersUpgradeable for CountersUpgradeable.Counter;
     //////////////////////
     // State Variables //
     ////////////////////
-    CountersUpgradeable.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
     IEmployerSft private employerSft;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
     mapping(uint256 => uint32) private tokenIdToEmployerId;
@@ -136,15 +131,13 @@ UUPSUpgradeable
         string memory _tokenURI,
         uint32 _employerId
     ) internal returns (uint256) {
-        _tokenIdCounter.increment();
-        uint256 _tokenId = _tokenIdCounter.current();
-
-        _safeMint(_to, _tokenId);
-        _setTokenURI(_tokenId, _tokenURI);
-        tokenIdToEmployerId[_tokenId] = _employerId;
+        _tokenIdCounter++;
+        _safeMint(_to, _tokenIdCounter);
+        _setTokenURI(_tokenIdCounter, _tokenURI);
+        tokenIdToEmployerId[_tokenIdCounter] = _employerId;
         emit NewBadgeMinted(_to, _tokenURI);
 
-        return _tokenId;
+        return _tokenIdCounter;
     }
 
     /**
