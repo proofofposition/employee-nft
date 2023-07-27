@@ -41,7 +41,7 @@ UUPSUpgradeable
     /////////////
     // Events //
     ///////////
-    event NewBadgeMinted(address indexed _to, string indexed _tokenURI);
+    event NewBadgeMinted(uint256 indexed _tokenId, address indexed _to, string indexed _tokenURI);
     event TokenBurned(uint256 indexed _tokenId, address indexed _burnedBy);
     /**
      * @dev We use the employer NFT contract to map the msg.sender to the employer id
@@ -135,7 +135,7 @@ UUPSUpgradeable
         _safeMint(_to, _tokenIdCounter);
         _setTokenURI(_tokenIdCounter, _tokenURI);
         tokenIdToEmployerId[_tokenIdCounter] = _employerId;
-        emit NewBadgeMinted(_to, _tokenURI);
+        emit NewBadgeMinted(_tokenIdCounter, _to, _tokenURI);
 
         return _tokenIdCounter;
     }
