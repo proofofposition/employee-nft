@@ -11,7 +11,7 @@ import "popp-interfaces/IEmployeeNft.sol";
 /**
  * @title EmployeeBadge
  * @notice This contract represents an employee badge.
- It is minted by an employer and assigned to an employee as Proof of their Position in the Organization.
+ It is minted by an employer and assigned to an employee as proof of their position in the organization.
  * @dev This contract is an ERC721 token that is minted by an admin or verified POPP employer and assigned to a new employee.
  * Desired Features
  * - Mint a new employee badge for any employer (admin)
@@ -41,8 +41,8 @@ UUPSUpgradeable
     /////////////
     // Events //
     ///////////
-    event NewBadgeMinted(uint256 indexed _tokenId, address indexed _to, string indexed _tokenURI);
-    event TokenBurned(uint256 indexed _tokenId, address indexed _burnedBy);
+    event NewBadgeMinted(uint256 _tokenId, address _to, string _tokenURI, uint256 _employerId);
+    event TokenBurned(uint256 _tokenId, address _burnedBy);
     /**
      * @dev We use the employer NFT contract to map the msg.sender to the employer id
      */
@@ -135,7 +135,7 @@ UUPSUpgradeable
         _safeMint(_to, _tokenIdCounter);
         _setTokenURI(_tokenIdCounter, _tokenURI);
         tokenIdToEmployerId[_tokenIdCounter] = _employerId;
-        emit NewBadgeMinted(_tokenIdCounter, _to, _tokenURI);
+        emit NewBadgeMinted(_tokenIdCounter, _to, _tokenURI, _employerId);
 
         return _tokenIdCounter;
     }
