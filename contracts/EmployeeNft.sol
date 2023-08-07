@@ -9,7 +9,7 @@ import "popp-interfaces/IEmployerSft.sol";
 import "popp-interfaces/IEmployeeNft.sol";
 
 /**
- * @title EmployeeBadge
+ * @title EmployeeNft
  * @notice This contract represents an employee badge.
  It is minted by an employer and assigned to an employee as proof of their position in the organization.
  * @dev This contract is an ERC721 token that is minted by an admin or verified POPP employer and assigned to a new employee.
@@ -19,7 +19,7 @@ import "popp-interfaces/IEmployeeNft.sol";
  * - Burn Tokens
  * - ERC721 full interface (base, metadata, enumerable)
  */
-contract EmployeeBadge is
+contract EmployeeNft is
 ERC721Upgradeable,
 ERC721URIStorageUpgradeable,
 OwnableUpgradeable,
@@ -28,7 +28,7 @@ UUPSUpgradeable
     //////////////
     // Errors  //
     ////////////
-    error MissingEmployerBadge();
+    error MissingEmployerNft();
     error NonTransferable();
     //////////////////////
     // State Variables //
@@ -41,7 +41,7 @@ UUPSUpgradeable
     /////////////
     // Events //
     ///////////
-    event NewBadgeMinted(uint256 _tokenId, address _to, string _tokenURI, uint256 _employerId);
+    event NewNftMinted(uint256 _tokenId, address _to, string _tokenURI, uint256 _employerId);
     event TokenBurned(uint256 _tokenId, address _burnedBy);
     /**
      * @dev We use the employer NFT contract to map the msg.sender to the employer id
@@ -71,7 +71,7 @@ UUPSUpgradeable
     ) external returns (uint256) {
         uint32 _employerId = employerSft.employerIdFromWallet(msg.sender);
         if (_employerId == 0) {
-            revert MissingEmployerBadge();
+            revert MissingEmployerNft();
         }
 
         return _mintFor(_employee, _tokenURI, _employerId);
@@ -97,7 +97,7 @@ UUPSUpgradeable
 
     /**
     * @dev Return the mapping of employer to token id
-    *
+    *E
     * @param _tokenId The id of the job nft
     * @return the employer id of the employer who minted the token
     */
@@ -135,7 +135,7 @@ UUPSUpgradeable
         _safeMint(_to, _tokenIdCounter);
         _setTokenURI(_tokenIdCounter, _tokenURI);
         tokenIdToEmployerId[_tokenIdCounter] = _employerId;
-        emit NewBadgeMinted(_tokenIdCounter, _to, _tokenURI, _employerId);
+        emit NewNftMinted(_tokenIdCounter, _to, _tokenURI, _employerId);
 
         return _tokenIdCounter;
     }

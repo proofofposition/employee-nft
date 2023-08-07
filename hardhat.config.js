@@ -4,7 +4,7 @@ require("solidity-coverage");
 require('dotenv').config({path:__dirname+'/.env'})
 require('@openzeppelin/hardhat-upgrades');
 
-const { SEPOLIA_API_URL, GOERLI_API_URL, PRIVATE_KEY, REPORT_GAS } = process.env;
+const { BASE_GOERLI_API_URL, SEPOLIA_API_URL, GOERLI_API_URL, PRIVATE_KEY, REPORT_GAS } = process.env;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -26,6 +26,12 @@ module.exports = {
     },
     sepolia: {
       url: SEPOLIA_API_URL,
+      accounts: [
+        PRIVATE_KEY
+      ]
+    },
+    base_goerli: {
+      url: BASE_GOERLI_API_URL,
       accounts: [
         PRIVATE_KEY
       ]

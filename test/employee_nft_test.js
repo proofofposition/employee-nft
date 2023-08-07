@@ -10,7 +10,7 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
 
-describe("🚩Employee Badge User Flows", function () {
+describe("🚩Employee Nft User Flows", function () {
     this.timeout(120000);
 
     let myContract;
@@ -18,13 +18,13 @@ describe("🚩Employee Badge User Flows", function () {
     let alice;
     let bob;
 
-    describe("EmployeeBadge", function () {
+    describe("EmployeeNft", function () {
         beforeEach(async function () {
-            // deploy employer badge mock contract
+            // deploy employer nft mock contract
             const EmployerSftMockFactory = await ethers.getContractFactory("EmployerSftMock");
             this.employerSft = await upgrades.deployProxy(EmployerSftMockFactory);
             // deploy contract under test
-            const Popp = await ethers.getContractFactory("EmployeeBadge");
+            const Popp = await ethers.getContractFactory("EmployeeNft");
             myContract = await upgrades.deployProxy(Popp, [this.employerSft.address]);
 
             [owner, alice, bob] = await ethers.getSigners();
@@ -51,7 +51,7 @@ describe("🚩Employee Badge User Flows", function () {
                 // test no approval
                 await expect(
                     myContract.connect(bob).mintFor(bob.address, 'QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr')
-                ).to.be.revertedWithCustomError(myContract, 'MissingEmployerBadge');
+                ).to.be.revertedWithCustomError(myContract, 'MissingEmployerNft');
                 const bobBalance = await myContract.balanceOf(bob.address);
                 expect(bobBalance.toBigInt()).to.equal(0);
             });

@@ -1,15 +1,17 @@
 // scripts/create-box.js
 const { ethers, upgrades } = require("hardhat");
-// const employerBadgeAddress = "0xbA48b6AC88761d8B153E50Ca882FB4Ae798f57df";
-const employerBadgeAddress = "0xb7D2887361C90DDf1f1B4630D222C1C9E477ed3d";
+// sepolia
+// const employerBadgeAddress = "0xb7D2887361C90DDf1f1B4630D222C1C9E477ed3d";
+// base goerli
+const employerBadgeAddress = "0x57172fC26F83BD18850B5657f62d2fa09Cd1C4dD";
 async function main() {
     console.log("Starting...");
-    const EmployeeBadge = await ethers.getContractFactory("EmployeeBadge");
-    const employeeBadge = await upgrades.deployProxy(EmployeeBadge, [employerBadgeAddress]);
-    console.log("Deploying EmployeeBadge...");
-    await employeeBadge.deployed();
-    console.log("EmployeeBadge deployed to:", employeeBadge.address);
-    let owner = await employeeBadge.owner();
+    const EmployeeNft = await ethers.getContractFactory("EmployeeNft");
+    const employeeNft = await upgrades.deployProxy(EmployeeNft, [employerBadgeAddress]);
+    console.log("Deploying EmployeeNft...");
+    await employeeNft.deployed();
+    console.log("EmployeeNft deployed to:", employeeNft.address);
+    let owner = await employeeNft.owner();
     console.log("Owner:", owner);
 }
 
