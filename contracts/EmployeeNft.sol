@@ -36,12 +36,12 @@ UUPSUpgradeable
     uint256 private _tokenIdCounter;
     IEmployerSft private employerSft;
     mapping(address => mapping(uint32 => uint256)) private employeeToJobIds;
-    mapping(uint256 => uint32) private tokenIdToEmployerId;
+    mapping(uint256 => string) private tokenIdToEmployerKey;
     mapping(uint256  => string) private burnedTokenIdToURI;
     /////////////
     // Events //
     ///////////
-    event NewNftMinted(uint256 _tokenId, address _to, string _tokenURI, uint256 _employerId);
+    event NewNftMinted(uint256 _tokenId, address _to, string _tokenURI, string _employerKey);
     event TokenBurned(uint256 _tokenId, address _burnedBy);
     /**
      * @dev We use the employer NFT contract to map the msg.sender to the employer id
@@ -69,12 +69,12 @@ UUPSUpgradeable
         address _employee,
         string memory _tokenURI
     ) external returns (uint256) {
-        uint32 _employerId = employerSft.employerIdFromWallet(msg.sender);
-        if (_employerId == 0) {
+        string memory _employerKey = employerSft.employerKeyFromWallet(msg.sender);
+        if (bytes(_employerKey).length == 0) {
             revert MissingEmployerNft();
         }
 
-        return _mintFor(_employee, _tokenURI, _employerId);
+        return _mintFor(_employee, _tokenURI, _employerKey);
     }
 
     /**
@@ -83,16 +83,16 @@ UUPSUpgradeable
     *
     * @param _employee The address to mint the NFT to
     * @param _tokenURI the uir of the token metadata
-    * @param _employerId the id of the employer who minted the token
+    * @param _employerKey the id of the employer who minted the token
     *
     * @return uint256 representing the newly minted token id
     */
     function adminMintFor(
         address _employee,
         string memory _tokenURI,
-        uint32 _employerId
+        string memory _employerKey
     ) public onlyOwner returns (uint256) {
-        return _mintFor(_employee, _tokenURI, _employerId);
+        return _mintFor(_employee, _tokenURI, _employerKey);
     }
 
     /**
@@ -101,8 +101,8 @@ UUPSUpgradeable
     * @param _tokenId The id of the job nft
     * @return the employer id of the employer who minted the token
     */
-    function getEmployerId(uint256 _tokenId) public view returns (uint32) {
-        return tokenIdToEmployerId[_tokenId];
+    function getEmployerKey(uint256 _tokenId) public view returns (string memory) {
+        return tokenIdToEmployerKey[_tokenId];
     }
 
     /**
@@ -110,12 +110,11 @@ UUPSUpgradeable
      * @param tokenId The token to burn
      */
     function burn(uint256 tokenId) external {
-        uint32 _employerId = getEmployerId(tokenId);
         address _sender = _msgSender();
         require(
             _msgSender() == ownerOf(tokenId)
             || owner() == _sender
-            || employerSft.employerIdFromWallet(_sender) == _employerId,
+            || keccak256(bytes(employerSft.employerKeyFromWallet(_sender))) == keccak256(bytes(getEmployerKey(tokenId))),
             "Only the employee or employer can do this"
         );
         _burn(tokenId);
@@ -129,13 +128,13 @@ UUPSUpgradeable
     function _mintFor(
         address _to,
         string memory _tokenURI,
-        uint32 _employerId
+        string memory _employerKey
     ) internal returns (uint256) {
         _tokenIdCounter++;
         _safeMint(_to, _tokenIdCounter);
         _setTokenURI(_tokenIdCounter, _tokenURI);
-        tokenIdToEmployerId[_tokenIdCounter] = _employerId;
-        emit NewNftMinted(_tokenIdCounter, _to, _tokenURI, _employerId);
+        tokenIdToEmployerKey[_tokenIdCounter] = _employerKey;
+        emit NewNftMinted(_tokenIdCounter, _to, _tokenURI, _employerKey);
 
         return _tokenIdCounter;
     }

@@ -32,7 +32,7 @@ describe("🚩Employee Nft User Flows", function () {
 
         describe("mintFor() ", function () {
             it("Should be able to mint for an employee", async function () {
-                await this.employerSft.setEmployerId(1);
+                await this.employerSft.setEmployerKey('hooli');
                 await myContract.mintFor(
                     alice.address,
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
@@ -40,7 +40,7 @@ describe("🚩Employee Nft User Flows", function () {
 
                 expect(await myContract.balanceOf(alice.address)).to.equal(1);
                 expect(await myContract.ownerOf(1)).to.equal(alice.address);
-                expect(await myContract.getEmployerId(1)).to.equal(1);
+                expect(await myContract.getEmployerKey(1)).to.equal('hooli');
 
                 await expect(
                     myContract.connect(alice).transferFrom(alice.address, bob.address, 1)
@@ -85,7 +85,7 @@ describe("🚩Employee Nft User Flows", function () {
 
         describe("burn()", function () {
             it("Should be able to burn your popp", async function () {
-                await this.employerSft.setEmployerId(1);
+                await this.employerSft.setEmployerKey('hooli');
                 await myContract.mintFor(
                     alice.address,
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
@@ -96,18 +96,18 @@ describe("🚩Employee Nft User Flows", function () {
                 expect(aliceBalance.toBigInt()).to.equal(0);
             });
             it("Should be able to burn your employee's pop", async function () {
-                await this.employerSft.setEmployerId(1);
+                await this.employerSft.setEmployerKey('hooli');
                 await myContract.mintFor(
                     alice.address,
                     "QmfVMAmNM1kDEBYrC2TPzQDoCRFH6F5tE1e9Mr4FkkR5Xr"
                 );
 
-                await this.employerSft.setEmployerId(2);
+                await this.employerSft.setEmployerKey('pied-piper');
                 await expect(
                     myContract.connect(bob).burn(1)
                 ).to.be.revertedWith("Only the employee or employer can do this");
 
-                await this.employerSft.setEmployerId(1);
+                await this.employerSft.setEmployerKey('hooli');
                 await myContract.connect(bob).burn(1);
                 const aliceBalance = await myContract.balanceOf(alice.address);
                 expect(aliceBalance.toBigInt()).to.equal(0);
