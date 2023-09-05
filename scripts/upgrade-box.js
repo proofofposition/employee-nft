@@ -5,6 +5,9 @@ const { ethers, upgrades } = require("hardhat");
 const UPGRADEABLE_CONTRACT_ADDRESS = "0x09daCDAb31054ccF6e521f026947937C24259ea4";
 // base goerli
 // const UPGRADEABLE_CONTRACT_ADDRESS = "0x71763e216f4C68e8865F8dd1f060E2f1C5fb14c3";
+
+// polygon
+// const UPGRADEABLE_CONTRACT_ADDRESS = "0x642486e56b12a8A8B56C93b27444562db4eA8A07";
 async function main() {
     console.log("Starting...");
     const EmployeeNft = await ethers.getContractFactory("EmployeeNft");
